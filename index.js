@@ -1,7 +1,9 @@
 import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason,
-  fetchLatestBaileysVersion
+  fetchLatestBaileysVersion,
+  BufferJSON,
+  proto
 } from '@whiskeysockets/baileys';
 
 import { Boom } from '@hapi/boom';
@@ -643,6 +645,82 @@ function estCommandeDirecte(texte) {
 }
 
 // ==========================================
+// 📱 SAUVEGARDE SESSION DANS FIREBASE
+// ==========================================
+
+async function useFirebaseAuthState() {
+  if (!db) {
+    console.log('⚠️ Firebase non disponible : utilisation du stockage local pour l’authentification.');
+    return await useMultiFileAuthState('auth_info_baileys');
+  }
+
+  const collectionRef = db.collection('whatsapp_session');
+
+  const writeData = async (data, id) => {
+    try {
+      await collectionRef.doc(id).set(JSON.parse(JSON.stringify(data, BufferJSON.replacer)));
+    } catch (err) {
+      console.error('❌ Erreur écriture session Firebase :', err.message);
+    }
+  };
+
+  const readData = async (id) => {
+    try {
+      const doc = await collectionRef.doc(id).get();
+      if (doc.exists) {
+        return JSON.parse(JSON.stringify(doc.data()), BufferJSON.reviver);
+      }
+    } catch (err) {
+      console.error('❌ Erreur lecture session Firebase :', err.message);
+    }
+    return null;
+  };
+
+  const removeData = async (id) => {
+    try {
+      await collectionRef.doc(id).delete();
+    } catch (err) {
+      console.error('❌ Erreur suppression session Firebase :', err.message);
+    }
+  };
+
+  const creds = (await readData('creds')) || (await useMultiFileAuthState('auth_info_baileys')).state.creds;
+
+  return {
+    state: {
+      creds,
+      keys: {
+        get: async (type, ids) => {
+          const data = {};
+          await Promise.all(
+            ids.map(async (id) => {
+              let value = await readData(`${type}-${id}`);
+              if (type === 'app-state-sync-key' && value) {
+                value = proto.Message.AppStateSyncKeyData.fromObject(value);
+              }
+              data[id] = value;
+            })
+          );
+          return data;
+        },
+        set: async (data) => {
+          const tasks = [];
+          for (const category in data) {
+            for (const id in data[category]) {
+              const value = data[category][id];
+              const key = `${category}-${id}`;
+              tasks.push(value ? writeData(value, key) : removeData(key));
+            }
+          }
+          await Promise.all(tasks);
+        }
+      }
+    },
+    saveCreds: () => writeData(creds, 'creds')
+  };
+}
+
+// ==========================================
 // 📱 CONNEXION WHATSAPP
 // ==========================================
 
@@ -652,8 +730,7 @@ async function connectToWhatsApp() {
   reconnecting = true;
 
   try {
-    const { state, saveCreds } =
-      await useMultiFileAuthState('auth_info_baileys');
+    const { state, saveCreds } = await useFirebaseAuthState();
 
     const { version } =
       await fetchLatestBaileysVersion();
