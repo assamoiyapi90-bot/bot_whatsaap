@@ -91,7 +91,7 @@ const systemInstruction = `
 Tu es Hbot1 🤖, un assistant intelligent, chaleureux,
 cultivé, drôle et bienveillant.
 
-Tu as été créé et développé par Assamoi Yapi Hyppolite.
+Tu es né et développé par Assamoi Yapi Hyppolite.
 
 Tu es un assistant polyvalent capable de parler de nombreux sujets.
 
@@ -188,8 +188,6 @@ function normaliserTexte(texte) {
 function estAppeIe(texte) {
   const texteNormalise = normaliserTexte(texte);
 
-  // Seuls les noms précis Hbot1 et Hbot déclenchent
-  // une réponse intelligente dans les groupes.
   return /(^|[^a-z0-9])hbot1?(?=$|[^a-z0-9])/i
     .test(texteNormalise);
 }
@@ -363,7 +361,7 @@ function getProgrammeDuDimanche() {
 }
 
 // ==========================================
-// 💰 COTISATIONS FIREBASE
+// 💰 COTISATIONS FIREBASE (MIS À JOUR - REGROUPÉ)
 // ==========================================
 
 async function getCotisationsReport() {
@@ -383,60 +381,62 @@ async function getCotisationsReport() {
 💡 Rappel : Cotisation de 100 FCFA chaque dimanche pour le studio et l'agapé.`;
     }
 
-    const transactions = [];
+    const memberMap = new Map();
 
     snap.forEach(doc => {
       const x = doc.data();
 
-      const name =
-        x.name ||
-        x.memberName ||
-        'Membre';
-
-      const amount =
-        x.amount ??
-        x.montant ??
-        500;
+      const name = String(x.name || x.memberName || 'Membre').trim();
+      const amount = Number(x.amount ?? x.montant ?? 500);
 
       let dt = new Date();
 
       if (x.timestamp?.toDate) {
         dt = x.timestamp.toDate();
-
       } else if (x.timestamp) {
         const parsed = new Date(x.timestamp);
-
         if (!Number.isNaN(parsed.getTime())) {
           dt = parsed;
         }
       }
 
-      transactions.push({
-        name: String(name),
-        amount,
-        dt
-      });
+      const key = name.toLowerCase();
+      if (!memberMap.has(key)) {
+        memberMap.set(key, {
+          name: name,
+          totalAmount: 0,
+          lastDt: dt
+        });
+      }
+
+      const entry = memberMap.get(key);
+      entry.totalAmount += amount;
+      if (dt > entry.lastDt) {
+        entry.lastDt = dt;
+      }
     });
 
-    const joanna = transactions.filter(
-      t => t.name.toLowerCase().includes('joanna')
+    const membersList = Array.from(memberMap.values());
+
+    const joanna = membersList.filter(
+      m => m.name.toLowerCase().includes('joanna')
     );
 
-    const autres = transactions.filter(
-      t => !t.name.toLowerCase().includes('joanna')
+    const autres = membersList.filter(
+      m => !m.name.toLowerCase().includes('joanna')
     );
 
-    autres.sort((a, b) => a.dt - b.dt);
-    joanna.sort((a, b) => a.dt - b.dt);
+    autres.sort((a, b) => b.totalAmount - a.totalAmount);
+    joanna.sort((a, b) => b.totalAmount - a.totalAmount);
 
     const liste = [...joanna, ...autres];
 
     let out = '📊 *CLASSEMENT DES COTISATIONS* 🪙\n\n';
 
-    liste.forEach((t, index) => {
+    liste.forEach((m, index) => {
       const badge = index === 0 ? '🥇' : '✅';
 
-      out += `${badge} *${t.name}* : +${t.amount} FCFA _(${t.dt.toLocaleString('fr-FR', { timeZone: 'Africa/Abidjan' })})_\n`;
+      out += `${badge} *${m.name}* : +${m.totalAmount} FCFA _(Dernier : ${m.lastDt.toLocaleString('fr-FR', { timeZone: 'Africa/Abidjan' })})_\n`;
     });
 
     return out + '\n💡 Merci pour votre fidélité ! 🙏✨';
@@ -482,7 +482,6 @@ async function envoyerAuGroupe(texte) {
   }
 }
 
-// Méditation quotidienne à 06h30
 cron.schedule('30 6 * * *', async () => {
   try {
     const prompt = `
@@ -517,7 +516,6 @@ function isFirstOrLastFriday(date) {
     date.getDate() > dernierJour - 7;
 }
 
-// Rappel veillée le vendredi à 14h
 cron.schedule('0 14 * * 5', async () => {
   if (!isFirstOrLastFriday(new Date())) return;
 
@@ -529,19 +527,16 @@ pour la gloire de Dieu ! 🙏✨`
   );
 }, { timezone: 'Africa/Abidjan' });
 
-// Programme du week-end vendredi et samedi à 14h
 cron.schedule('0 14 * * 5,6', async () => {
   await envoyerAuGroupe(
     `🔔 *PROGRAMME WEEK-END* ⛪\n\n${getProgrammeDuDimanche()}`
   );
 }, { timezone: 'Africa/Abidjan' });
 
-// Cotisation samedi à 16h
 cron.schedule('0 16 * * 6', async () => {
   await envoyerAuGroupe(cotisationsMessage);
 }, { timezone: 'Africa/Abidjan' });
 
-// Cotisation dimanche à 11h30
 cron.schedule('30 11 * * 0', async () => {
   await envoyerAuGroupe(cotisationsMessage);
 }, { timezone: 'Africa/Abidjan' });
@@ -554,12 +549,10 @@ async function envoyerRapportCotisationsDimanche() {
   );
 }
 
-// Bilan dimanche à 17h
 cron.schedule('0 17 * * 0', envoyerRapportCotisationsDimanche, {
   timezone: 'Africa/Abidjan'
 });
 
-// Bilan dimanche à 20h
 cron.schedule('0 20 * * 0', envoyerRapportCotisationsDimanche, {
   timezone: 'Africa/Abidjan'
 });
@@ -801,10 +794,6 @@ async function connectToWhatsApp() {
       }
     });
 
-    // ======================================
-    // 📩 RÉCEPTION DES MESSAGES
-    // ======================================
-
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
       if (type !== 'notify') return;
 
@@ -816,7 +805,6 @@ async function connectToWhatsApp() {
 
           if (!remoteJid) continue;
 
-          // Ignorer les statuts WhatsApp
           if (remoteJid === 'status@broadcast') continue;
 
           const isGroup = remoteJid.endsWith('@g.us');
@@ -837,20 +825,12 @@ async function connectToWhatsApp() {
             `📩 Message reçu (${isGroup ? 'Groupe' : 'Privé'}) : ${textMessage.substring(0, 100)}`
           );
 
-          // ==================================
-          // 🔒 FILTRE PRINCIPAL
-          // ==================================
-
-          // Les commandes officielles restent accessibles.
           const commandeDirecte =
             estCommandeDirecte(textMessage);
 
-          // Détecter un appel explicite du bot.
           const botAppele =
             estAppeIe(textMessage);
 
-          // Détecter une réponse WhatsApp à un message
-          // envoyé précédemment par Hbot1.
           const contexte =
             msg.message.extendedTextMessage?.contextInfo ||
             msg.message.imageMessage?.contextInfo ||
@@ -871,8 +851,6 @@ async function connectToWhatsApp() {
               sock.user.id.split(':')[0]
           );
 
-          // Le bot ignore les conversations ordinaires.
-          // Aucune réponse IA ne sera générée dans ce cas.
           if (
             isGroup &&
             !botAppele &&
@@ -886,10 +864,6 @@ async function connectToWhatsApp() {
             continue;
           }
 
-          // ==================================
-          // 🆔 COMMANDE ID
-          // ==================================
-
           if (lowerText === '!id') {
             await sock.sendMessage(
               remoteJid,
@@ -901,10 +875,6 @@ async function connectToWhatsApp() {
 
             continue;
           }
-
-          // ==================================
-          // 🆘 AIDE
-          // ==================================
 
           if (
             lowerText === 'qui est hbot' ||
@@ -923,10 +893,6 @@ async function connectToWhatsApp() {
             continue;
           }
 
-          // ==================================
-          // 🧠 RESETIA
-          // ==================================
-
           if (lowerText === '!resetia') {
             resetHistory(chatId);
 
@@ -940,10 +906,6 @@ async function connectToWhatsApp() {
 
             continue;
           }
-
-          // ==================================
-          // 💰 COTISATIONS
-          // ==================================
 
           if (
             lowerText === '!cotisation' ||
@@ -966,10 +928,6 @@ async function connectToWhatsApp() {
             continue;
           }
 
-          // ==================================
-          // ⛪ PROGRAMME DU DIMANCHE
-          // ==================================
-
           if (
             lowerText === '!programme' ||
             lowerText === '!p' ||
@@ -984,10 +942,6 @@ async function connectToWhatsApp() {
             continue;
           }
 
-          // ==================================
-          // 📅 PROGRAMME COMPLET
-          // ==================================
-
           if (lowerText === '!programme complet') {
             await sock.sendMessage(
               remoteJid,
@@ -997,10 +951,6 @@ async function connectToWhatsApp() {
 
             continue;
           }
-
-          // ==================================
-          // ✏️ MODIFIER LE PROGRAMME
-          // ==================================
 
           if (lowerText.startsWith('!setprogramme ')) {
             if (!isGroup) {
@@ -1086,19 +1036,11 @@ async function connectToWhatsApp() {
             continue;
           }
 
-          // ==================================
-          // 🧠 RÉPONSE INTELLIGENTE
-          // ==================================
-
-          // Si le bot a été appelé par son nom, on retire
-          // le nom du début pour transmettre une question claire.
           let promptIA = textMessage.replace(
             /^\s*hbot1?\b[\s,:;.!?¡¿-]*/i,
             ''
           ).trim();
 
-          // Si le message est une réponse au bot, garder
-          // le contenu original pour préserver le contexte.
           if (reponseAuBot && !botAppele) {
             promptIA = textMessage;
           }
