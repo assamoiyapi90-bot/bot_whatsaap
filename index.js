@@ -316,19 +316,22 @@ app.listen(PORT, '0.0.0.0', () => {
 // ⛪ PROGRAMME DE L'ÉGLISE
 // ==========================================
 
-let texteProgrammeMois = `⛪ *ÉGLISE DES ASSEMBLÉES DE DIEU - TEMPLE DE LA RESTAURATION DIVINE*
+let texteProgrammeMois = `⛪ *ÉGLISE DES ASSEMBLÉES DE DIEU ABOBO BELLEVILLE*
+*TEMPLE LA RESTAURATION DIVINE*
+🎵 *PROGRAMME DES MOIS DE NOVEMBRE ET DÉCEMBRE (GROUPE MUSICALE)*
 
-📅 *PROGRAMME DE SEPTEMBRE 2026*
-• *06/09/26* : Adoration: Anne | Célébration: Mme M'Bro | 1ère & 2e Offrande: Mme Diby
-• *13/09/26* : Adoration: Nancy | Célébration: Bérénice | 1ère & 2e Offrande: Evodie
-• *20/09/26* : Adoration: Mme M'Bro | Célébration: Anne | 1ère & 2e Offrande: Joanne
-• *27/09/26* : Adoration: Mme Assamoi | Célébration: Nancy | 1ère & 2e Offrande: Anne
+📅 *NOVEMBRE 2026*
+• *01/11/26* : Adoration: Anne | Célébration: Nancy | 1ère & 2e Offrande: Mme Diby
+• *08/11/26* : Adoration: Joanne | Célébration: Mme M'Bro | 1ère & 2e Offrande: Mme Diallo
+• *15/11/26* : Adoration: Nancy | Célébration: Anne | 1ère & 2e Offrande: Marie-Ange
+• *22/11/26* : Adoration: Bérénice | Célébration: Mme Diallo | 1ère & 2e Offrande: Joanne
+• *29/11/26* : Adoration: Mme M'Bro | Célébration: Marie-Ange | 1ère & 2e Offrande: Nancy
 
-📅 *PROGRAMME D'OCTOBRE 2026*
-• *04/10/26* : Adoration: Evodie | Célébration: Mme M'Bro | 2e Offrande: Nancy
-• *11/10/26* : Adoration: Bérénice | Célébration: Mme Diallo | 2e Offrande: Marie-Ange
-• *18/10/26* : Adoration: Joanne | Célébration: Nancy | 2e Offrande: Evodie
-• *25/10/26* : Adoration: Ange/Marina | Célébration: Bérénice | 2e Offrande: Mme M'Bro`;
+📅 *DÉCEMBRE 2026*
+• *06/12/26* : Adoration: Mme Diallo | Célébration: Bérénice | 1ère & 2e Offrande: Anne
+• *13/12/26* : Adoration: Nancy | Célébration: Joanne | 1ère & 2e Offrande: Mme M'Bro
+• *20/12/26* : Adoration: Marie-Ange | Célébration: Mme Diallo | 1ère & 2e Offrande: Bérénice
+• *27/12/26* : Adoration: Joanne | Célébration: Anne | 1ère & 2e Offrande: Mme Diby`;
 
 function formatDate(date) {
   const jour = String(date.getDate()).padStart(2, '0');
@@ -1047,7 +1050,7 @@ async function connectToWhatsApp() {
 
           if (!promptIA) {
             promptIA =
-              'Tu as été appelé. Salue la personne et demande-lui ce dont elle a besoin.';
+              'Tu été appelé. Salue la personne et demande-lui ce dont elle a besoin.';
           }
 
           await sock.sendPresenceUpdate(
